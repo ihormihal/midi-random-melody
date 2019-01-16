@@ -1,0 +1,14 @@
+{
+  "name": "midi",
+  "version": "1.0.0",
+  "description": "Midi generator",
+  "main": "index.js",
+  "scripts": {
+    "make": "node index.js D3"
+  },
+  "author": "Ihor Mykhalchenko",
+  "license": "ISC",
+  "dependencies": {
+    "midi-writer-js": "^1.6.0"
+  }
+}
