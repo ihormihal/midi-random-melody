@@ -106,7 +106,7 @@ const randomGroup = (range, config) => {
                 }
                 //нам нужно вниз исключая индекс предыдущей ноты, оставляя запас для оставшихся в группе
                 else if(groupDirection === 'down'){
-                    note = random(range, restAmountg, notes[i-1].rangeIndex)
+                    note = random(range, restAmount, notes[i-1].rangeIndex)
                 }
             }
 

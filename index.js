@@ -12,7 +12,7 @@ const midifile = require('./components/midifile')
 
 
 let groups = {
-    pluck_4: [
+    pluck4: [
         { duration: '16', wait: '2' }, //group delay
         { duration: '16', wait: '16' },
         { duration: '16', wait: '0' },
@@ -20,21 +20,24 @@ let groups = {
     ]
 }
 
+let group
+
 let config = {
-    baseKey: 'F',
+    baseKey: 'G',
     octave: 3,
-    width: 1, //ширина мелодии в октавах
-    scale: 'minor',
+    width: 2, //ширина мелодии в октавах
+    scale: 'major',
     scaleType: 'harmonic', //natural,harmonic,melodic
-    group: groups.pluck_4, //группа - длительности
+    groupName: 'pluck4',
     loops: 50, //количество групп
     direction: 'up', //направление в группе up/down/random
     allowRepeats: false //разрешать нот повторения в группе
 }
 
+config.group = groups[config.groupName]
 
 
 let melody = generators.makeMelody(config)
 
 
-midifile.create(`${config.baseKey}_${config.scaleType}_${config.scale}`, melody)
+midifile.create(`${config.baseKey}_${config.scaleType}_${config.scale}_${config.groupName}_${config.direction}`, melody)
