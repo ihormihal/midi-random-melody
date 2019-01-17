@@ -21,15 +21,15 @@ let groups = {
 }
 
 let config = {
-    baseKey: 'C',
-    octave: 4,
+    baseKey: 'F',
+    octave: 3,
     width: 1, //ширина мелодии в октавах
     scale: 'minor',
     scaleType: 'harmonic', //natural,harmonic,melodic
     group: groups.pluck_4, //группа - длительности
-    loops: 10, //количество групп
-    direction: 'down', //направление в группе
-    strictDirection: false //не разрешать повторения в группе
+    loops: 50, //количество групп
+    direction: 'up', //направление в группе up/down/random
+    allowRepeats: false //разрешать нот повторения в группе
 }
 
 

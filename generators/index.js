@@ -1,6 +1,10 @@
-const random = (array) => {
-    let index = Math.round(Math.random()*(array.length-1))
-    return { ...array[index] }
+const random = (array, sliceFrom = 0, sliceTo) => {
+    if(!sliceTo) sliceTo = array.length
+    let range = array.slice(sliceFrom, sliceTo)
+    let index = Math.round(Math.random()*(range.length-1))
+    return { 
+        ...range[index]
+    }
 }
 
 /*
@@ -9,6 +13,7 @@ note.scaleIndex - ступень в гамме
 note.key - буква клавиши без номера октавы
 note.octave - номер октавы
 note.tone - порядковый номер клавиши на клавиатуре
+note.rangeIndex - порядковый номер в диапазоне гаммы
 note.wait - задержка
 note.duration - длительность
 */
@@ -18,11 +23,12 @@ const keys = [ 'C','C#','D','D#','E','F','F#','G','G#','A','A#','B' ]
 let allNotes = []
 for(let octave=0;octave<9;octave++){
     for(let index=0;index<keys.length;index++){
+        let tone = index + octave*keys.length //это и есть индекс в массиве
         allNotes.push({
             octave,
             index,
             key: keys[index],
-            tone: index + octave*keys.length //это и есть индекс в массиве
+            tone: tone
         }) 
     }
 }
@@ -64,13 +70,50 @@ const generateScale = (baseKey = 'C', type = 'major') => {
 
 const randomGroup = (range, config) => {
     let notes = []
-    for(let i=0;i<config.group.length;i++){
+    let groupLength = config.group.length
+    for(let i=0;i<groupLength;i++){
         let groupNote = config.group[i]
         let note = random(range)
+        let restAmount = groupLength - i - 1
+        let groupDirection = config.direction || 'random'
+
+        if(i === 0 && !config.allowRepeats){
+            if(groupDirection === 'up'){
+                note = random(range, 0, range.length - groupLength + 1) //потому что в slice последний индекс не учитывается
+            }
+            else if(groupDirection === 'down'){
+                note = random(range, groupLength - 1)
+            }
+        }
+
+        let rangeIndex = range.findIndex(item => note.tone === item.tone)
         let stage = note.stage
-        let restAmount = config.group.length-(i+1)
 
         if(i > 0){
+            if(config.allowRepeats){
+                //нам нужно вверх включая индекс предыдущей ноты
+                if(groupDirection === 'up'){
+                    note = random(range, notes[i-1].rangeIndex)
+                }
+                //нам нужно вниз включая индекс предыдущей ноты
+                else if(groupDirection === 'down'){
+                    note = random(range, 0, notes[i-1].rangeIndex + 1)
+                }
+            }else{
+                //нам нужно вверх исключая индекс предыдущей ноты, оставляя запас для оставшихся в группе
+                if(groupDirection === 'up'){
+                    note = random(range, notes[i-1].rangeIndex + 1, range.length - restAmount)
+                }
+                //нам нужно вниз исключая индекс предыдущей ноты, оставляя запас для оставшихся в группе
+                else if(groupDirection === 'down'){
+                    note = random(range, restAmountg, notes[i-1].rangeIndex)
+                }
+            }
+
+            //update
+            rangeIndex = range.findIndex(item => note.tone === item.tone)
+            stage = note.stage
+
             //correct gamma
             let direction = ''
             if(stage > notes[i-1].stage){
@@ -93,9 +136,11 @@ const randomGroup = (range, config) => {
                 }
             }
         }
+
         notes.push({
             ...note,
             stage,
+            rangeIndex,
             wait: groupNote.wait,
             duration: groupNote.duration
         })
