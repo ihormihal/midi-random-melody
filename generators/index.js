@@ -1,80 +1,127 @@
+const random = (array) => {
+    let index = Math.round(Math.random()*(array.length-1))
+    return { ...array[index] }
+}
+
+/*
+note.index - индекс в октаве keys
+note.scaleIndex - ступень в гамме
+note.key - буква клавиши без номера октавы
+note.octave - номер октавы
+note.tone - порядковый номер клавиши на клавиатуре
+note.wait - задержка
+note.duration - длительность
+*/
+
 const keys = [ 'C','C#','D','D#','E','F','F#','G','G#','A','A#','B' ]
 
-const getMajorScale = (baseKey) => {
-    let major = [2,2,1,2,2,2,1]
-    // let majorHarmonic = [2,2,1,2,1,3,1]
-    return generateScale(baseKey, major)
-}
-
-const getMinorScale = (baseKey) => {
-    let minor = [2,1,2,2,1,2,2]
-    return generateScale(baseKey, minor)
-}
-
-const getRandomKey = (scale, startOctave, endOctave) => {
-    let keyIndex = Math.round(Math.random()*(scale.length-1))
-    let octave = startOctave + Math.round(Math.random()*(endOctave - startOctave - 1))
-    let key = scale[keyIndex]
-    return {
-        ...key,
-        octave: octave,
-        key: scale[keyIndex].key
+let allNotes = []
+for(let octave=0;octave<9;octave++){
+    for(let index=0;index<keys.length;index++){
+        allNotes.push({
+            octave,
+            index,
+            key: keys[index],
+            tone: index + octave*keys.length //это и есть индекс в массиве
+        }) 
     }
 }
 
-const generateScale = (baseKey = 'F', structure) => {
-    let scale = []
+const generateScale = (baseKey = 'C', type = 'major') => {
+    let structure = []
+    switch (type) {
+        case 'major':
+            structure = [2,2,1,2,2,2,1]
+            break
+        case 'minor':
+            structure = [2,1,2,2,1,2,2]
+            break
+        default:
+            break
+    }
+
     let index = keys.indexOf(baseKey)
-    scale.push({scaleIndex: 0, index: 0, key: baseKey})
+    let indexes = [index]
     for(let i=0;i<structure.length;i++){
         index = index+structure[i]
         if(index > keys.length-1) index = index-keys.length
-        scale.push({scaleIndex: i+1, index: index, key: keys[index]})
+        indexes.push(index)
     }
-    return scale
+
+    let scaleNotes = []
+    for(let note of allNotes){
+        let stage = indexes.indexOf(note.index)
+        if(stage > -1){ //in scale
+            scaleNotes.push({
+                ...note,
+                stage
+            })
+        }
+    }
+    
+    return scaleNotes
 }
 
-const randomScale = (config) => {
-    let scale = []
+const randomGroup = (range, config) => {
     let notes = []
+    for(let i=0;i<config.group.length;i++){
+        let groupNote = config.group[i]
+        let note = random(range)
+        let stage = note.stage
+        let restAmount = config.group.length-(i+1)
 
-    if(config.scale === 'major'){
-        scale = getMajorScale(config.baseKey)
-    }else if(config.scale === 'minor'){
-        scale = getMinorScale(config.baseKey)
-    }
-
-    for(let i=0;i<config.count;i++){
-        let note = getRandomKey(scale, config.startOctave, config.endOctave)
         if(i > 0){
-            let prevScaleIndex = notes[i-1].scaleIndex
+            //correct gamma
+            let direction = ''
+            if(stage > notes[i-1].stage){
+                direction = 'up'
+            }else if(stage < notes[i-1].stage){
+                direction = 'down'
+            }
             if(config.scale === 'major'){
-                if(config.scaleType === 'harmonic' && note.scaleIndex === 6){
-                    let prevIndex = note.index === 0 ? keys.length - 1 : note.index - 1
-                    note.key = keys[prevIndex]
-                }
-                if(config.scaleType === 'melodic' && (note.scaleIndex === 5 || note.scaleIndex === 6) && note.scaleIndex < prevScaleIndex ){
-                    let prevIndex = note.index === 0 ? keys.length - 1 : note.index - 1
-                    note.key = keys[prevIndex]
+                if(
+                    (config.scaleType === 'harmonic' && stage === 6) || (config.scaleType === 'melodic' && (stage === 5 || stage === 6) && direction === 'down')
+                ){
+                    note = allNotes[note.tone - 1]
                 }
             }
             else if(config.scale === 'minor'){
-                if(config.scaleType === 'harmonic' && note.scaleIndex === 6){
-                    let nextIndex = note.index === keys.length - 1 ? 0 : note.index + 1
-                    note.key = keys[nextIndex]
-                }
-                if(config.scaleType === 'melodic' && (note.scaleIndex === 5 || note.scaleIndex === 6) && note.scaleIndex > prevScaleIndex ){
-                    let nextIndex = note.index === keys.length - 1 ? 0 : note.index + 1
-                    note.key = keys[nextIndex]
+                if(
+                    (config.scaleType === 'harmonic' && stage === 6) || (config.scaleType === 'melodic' && (stage === 5 || stage === 6) && direction === 'up')
+                ){
+                    note = allNotes[note.tone + 1]
                 }
             }
         }
-        notes.push(note)
+        notes.push({
+            ...note,
+            stage,
+            wait: groupNote.wait,
+            duration: groupNote.duration
+        })
     }
     return notes
 }
 
+const makeMelody = (config) => {
+    let scale = generateScale(config.baseKey, config.scale)
+    let baseNote = scale.find(note => note.octave === config.octave && note.key === config.baseKey)
+    let fromIndex = scale.indexOf(baseNote)
+    let toIndex = fromIndex + config.width*8 //8 - количество ступеней
+    if(toIndex > scale.length - 1) toIndex = scale.length - 1
+    let range = scale.slice(fromIndex, toIndex + 1)
+
+    let groups = []
+    for(let i=0;i<config.loops;i++){
+        let group = randomGroup(range, config)
+        groups.push(group)
+    }
+    return groups
+}
+
 
 module.exports = {
-    randomScale
+    allNotes,
+    generateScale,
+    makeMelody
 }
