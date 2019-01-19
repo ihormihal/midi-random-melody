@@ -1,9 +1,7 @@
-const random = (array, sliceFrom = 0, sliceTo) => {
-    if(!sliceTo) sliceTo = array.length
-    let range = array.slice(sliceFrom, sliceTo)
-    let index = Math.round(Math.random()*(range.length-1))
+const random = (array) => {
+    let index = Math.round(Math.random()*(array.length-1))
     return { 
-        ...range[index]
+        ...array[index]
     }
 }
 
@@ -13,7 +11,6 @@ note.scaleIndex - ступень в гамме
 note.key - буква клавиши без номера октавы
 note.octave - номер октавы
 note.tone - порядковый номер клавиши на клавиатуре
-note.rangeIndex - порядковый номер в диапазоне гаммы
 note.wait - задержка
 note.duration - длительность
 */
@@ -70,51 +67,29 @@ const generateScale = (baseKey = 'C', type = 'major') => {
 
 const randomGroup = (range, config) => {
     let notes = []
-    let groupLength = config.group.length
-    for(let i=0;i<groupLength;i++){
-        let groupNote = config.group[i]
-        let note = random(range)
-        let restAmount = groupLength - i - 1
-        let groupDirection = config.direction || 'random'
+    let noteExists = (note) => {
+        return config.allowRepeats ? false : notes.findIndex(n => note.tone === n.tone) > -1
+    }
+    for(let i=0;i<config.group.length;i++){
+        let note
+        do{
+            note = random(range)
+        }while(noteExists(note))
 
-        if(i === 0 && !config.allowRepeats){
-            if(groupDirection === 'up'){
-                note = random(range, 0, range.length - groupLength + 1) //потому что в slice последний индекс не учитывается
-            }
-            else if(groupDirection === 'down'){
-                note = random(range, groupLength - 1)
-            }
-        }
+        notes.push(note)
+    }
+    return notes
+}
 
-        let rangeIndex = range.findIndex(item => note.tone === item.tone)
+const adjustGroup = (notes, config) => {
+    let group = []
+    for(let i=0;i<notes.length;i++){
+        let note = notes[i]
         let stage = note.stage
 
+        //correct harmonic && melodic gamma
         if(i > 0){
-            if(config.allowRepeats){
-                //нам нужно вверх включая индекс предыдущей ноты
-                if(groupDirection === 'up'){
-                    note = random(range, notes[i-1].rangeIndex)
-                }
-                //нам нужно вниз включая индекс предыдущей ноты
-                else if(groupDirection === 'down'){
-                    note = random(range, 0, notes[i-1].rangeIndex + 1)
-                }
-            }else{
-                //нам нужно вверх исключая индекс предыдущей ноты, оставляя запас для оставшихся в группе
-                if(groupDirection === 'up'){
-                    note = random(range, notes[i-1].rangeIndex + 1, range.length - restAmount)
-                }
-                //нам нужно вниз исключая индекс предыдущей ноты, оставляя запас для оставшихся в группе
-                else if(groupDirection === 'down'){
-                    note = random(range, restAmount, notes[i-1].rangeIndex)
-                }
-            }
-
-            //update
-            rangeIndex = range.findIndex(item => note.tone === item.tone)
-            stage = note.stage
-
-            //correct gamma
+            
             let direction = ''
             if(stage > notes[i-1].stage){
                 direction = 'up'
@@ -137,15 +112,14 @@ const randomGroup = (range, config) => {
             }
         }
 
-        notes.push({
+        group.push({
             ...note,
             stage,
-            rangeIndex,
-            wait: groupNote.wait,
-            duration: groupNote.duration
+            wait: config.group[i].wait,
+            duration: config.group[i].duration
         })
     }
-    return notes
+    return group
 }
 
 const makeMelody = (config) => {
@@ -158,8 +132,18 @@ const makeMelody = (config) => {
 
     let groups = []
     for(let i=0;i<config.loops;i++){
+    
         let group = randomGroup(range, config)
-        groups.push(group)
+        if(config.direction === 'up'){
+            group.sort((a,b) => a.tone - b.tone)
+        }
+        else if(config.direction === 'down'){
+            group.sort((a,b) => b.tone - a.tone)
+        }
+
+        let adjustedGroup = adjustGroup(group, config)
+
+        groups.push(adjustedGroup)
     }
     return groups
 }

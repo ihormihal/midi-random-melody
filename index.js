@@ -12,26 +12,35 @@ const midifile = require('./components/midifile')
 
 
 let groups = {
+    flat: [
+        { duration: '4'},
+        { duration: '4'},
+        { duration: '4'},
+        { duration: '4'}
+    ],
     pluck4: [
-        { duration: '16', wait: '2' }, //group delay
+        { duration: '16', wait: '4' },
         { duration: '16', wait: '16' },
         { duration: '16', wait: '0' },
-        { duration: '8', wait: '16' },
+        { duration: '4', wait: '16' },
+    ],
+    pluck4_v2: [
+        { duration: '4', wait: '8' },
+        { duration: '8', wait: '0' },
+        { duration: '4', wait: '0' },
     ]
 }
 
-let group
-
 let config = {
-    baseKey: 'G',
+    baseKey: 'E',
     octave: 3,
     width: 2, //ширина мелодии в октавах
     scale: 'major',
-    scaleType: 'harmonic', //natural,harmonic,melodic
-    groupName: 'pluck4',
-    loops: 50, //количество групп
-    direction: 'up', //направление в группе up/down/random
-    allowRepeats: false //разрешать нот повторения в группе
+    scaleType: 'melodic', //natural,harmonic,melodic
+    groupName: 'flat',
+    loops: 100, //количество групп
+    direction: 'random', //up,down,random
+    allowRepeats: true //разрешать повторения нот (включать если не задан pitch)
 }
 
 config.group = groups[config.groupName]
